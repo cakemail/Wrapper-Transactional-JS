@@ -26,6 +26,7 @@ Config example:
           	"sender_name": "Firstname Lastname"
         }
 	</script>
+	
 
 ### Public Key
 A public key is required to use the api. It is given in the Javascript API tab in the online tool on http://transactional.cakemail.com/login
