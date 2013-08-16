@@ -11,20 +11,20 @@
 				// init only one time
 				cakemail.transactional.configs = {
 			        publickey : "39cbd578303bde65eaf87ebf1ed79058e501030f53a08e1514c396529e3ccc12da60ca5d2fd6e8f12f585d8820e5e23eec4bb33f9409c6aa6089915c3ad8f52c",
+
 			    };
 
-
-
 			    // This is the command to send emails
-			    // you can also pass global options into cakemail.transactional.configs, those are extended
+			    // you can also pass global options into cakemail.transactional.configs, those are extended, all options are required in the request
 			    cakemail.transactional.send({
 			    	// template name in app
-			    	template : "name_in_app",
+			    	template : "welcome",
+			    	language : "en_US",
 			    	sender_email: "test@test.com",
           			sender_name: "Firstname Lastname",
           			subject: "A message from my company!",
       			    recipients: [
-			            "willem@cakemail.com"
+			            "c@cakemail.com"
 			         ],
 			        // in the template this variable would be {{ firstname }}
 			        // we use twig as templating engine
@@ -32,7 +32,14 @@
 			        	"firstname": "Willem",
 			        	"test": "test"
 			        }
+				}).then(function onResolve(data, xhr){
+					console.log(data)
+					console.log(xhr)
+				},
+				function onReject(xhr){
+					console.log(xhr)
 				});
+
 			})();
 		</script>
 	</body>

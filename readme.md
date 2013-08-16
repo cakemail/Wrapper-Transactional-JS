@@ -17,7 +17,7 @@ Config example:
 
 	<script src="cakemail.transactional.js"></script>
 	<script>
-		cakeRelay.configs = {
+		cakemail.transactional.configs = {
 			// CakeMail public key
 			publickey : "mypublickey",
 			// template name given in the online transactional tool.
@@ -56,26 +56,31 @@ Example :
 
 
 ## Callbacks
-This plugin use promises for handling callbacks.
+This plugin use promises for handling callbacks. you must call then() and then then choose the appropriate function.
 
-### success
+### onResolve
 
 	cakemail.transactional.send({
 		"template": "name_in_app", 
 		"recipients": [
         	"willem@cakemail.com"
       	]
-	}).succcess(function(data, xhr){
-		console.log(data)
+	}).then(function onResolve(data, xhr){
+		
 	});
 
-### error
+### onReject
+On ie8 & ie9 we use XDomainRequest which does not support error returns, but we added a default one.
 
 	cakemail.transactional.send({
 		"template": "name_in_app", 
 		"recipients": [
         	"willem@cakemail.com"
       	]
-	}).error(function(xhr){
+	}).then(function onResolve(data, xhr){
+		console.log(data)
+		console.log(xhr)
+	},
+	function onReject(xhr){
 		console.log(xhr)
 	});

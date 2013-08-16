@@ -38,8 +38,8 @@ if(!window.cakemail) var cakemail = {};
     // Method you use
      cakemail.transactional.send = function(settings){
         // this url never change
-        var url = "https://transactional.cakemail.com/send",
-            promise = new cakemail.transactional.Promise(),
+        var url = location.protocol+"//transactional.cakemail.com/send",
+            promise = new Promise(),
             options = {};
 
 
@@ -51,7 +51,7 @@ if(!window.cakemail) var cakemail = {};
         var publickey = options.publickey;
         delete options.publickey;
 
-        var postdata = JSON.stringnify({
+        var postdata = JSON.stringify({
           publickey : publickey,
           data: options
         });
@@ -65,18 +65,19 @@ if(!window.cakemail) var cakemail = {};
             // Firefox 3.5 and Safari 4
             // 
             request.open('POST', url, true);
-            request.setRequestHeader("publickey",publickey);
             request.setRequestHeader('Content-Type', 'text/plain');
             request.send(postdata);
 
             request.onload = function (e) {
                 if (this.status === 200) {
                     results = JSON.parse(this.responseText);
-                    promise.success(results , e);
+                    promise.resolve(results , this);
+                }else{
+                  promise.reject(this);
                 }
             };
             request.onerror = function (e) {
-                promise.error(e);
+               promise.reject(this);
             };
           }
           else if (XDomainRequest)
@@ -88,10 +89,14 @@ if(!window.cakemail) var cakemail = {};
 
             xdr.onload = function(e) {
                 results = JSON.parse(this.responseText);
-                promise.success(results, e);
+                promise.resolve(results, this);
             };
             xdr.onerror = function(e) {
-               promise.error(e);
+              var data = {
+                responseText : "ie8 & ie9 does not support CORS error",
+                status : "400"
+              };
+              promise.reject(data);
             };
           }
         }
@@ -113,15 +118,64 @@ if(!window.cakemail) var cakemail = {};
       return destination;
     }
 
+
     // need to init promise
-    cakemail.transactional.Promise =  function() {};
-    cakemail.transactional.Promise.prototype.success = function (results) {
-        this.success = arguments[0]; //reassign
-        if(typeof this.success == "function")  this.success(results, e);
-    };
-    cakemail.transactional.Promise.prototype.error = function (error) {
-      /* move from unfulfilled to rejected */
-        this.error = arguments[0]; //reassign
-        if(typeof this.error == "function") this.error(error);
-    };
+    function Promise() {
+        this._thens = [];
+    }
+
+    Promise.prototype = {
+   
+    /* This is the "front end" API. */
+   
+    // then(onResolve, onReject): Code waiting for this promise uses the
+    // then() method to be notified when the promise is complete. There
+    // are two completion callbacks: onReject and onResolve. A more
+    // robust promise implementation will also have an onProgress handler.
+    then: function (onResolve, onReject) {
+      // capture calls to then()
+      this._thens.push({ resolve: onResolve, reject: onReject });
+    },
+   
+    // Some promise implementations also have a cancel() front end API that
+    // calls all of the onReject() callbacks (aka a "cancelable promise").
+    // cancel: function (reason) {},
+   
+    /* This is the "back end" API. */
+   
+    // resolve(resolvedValue): The resolve() method is called when a promise
+    // is resolved (duh). The resolved value (if any) is passed by the resolver
+    // to this method. All waiting onResolve callbacks are called
+    // and any future ones are, too, each being passed the resolved value.
+    resolve: function (val, xhr) { this._complete('resolve', val, xhr); },
+   
+    // reject(exception): The reject() method is called when a promise cannot
+    // be resolved. Typically, you'd pass an exception as the single parameter,
+    // but any other argument, including none at all, is acceptable.
+    // All waiting and all future onReject callbacks are called when reject()
+    // is called and are passed the exception parameter.
+    reject: function (ex) { this._complete('reject', ex); },
+   
+    // Some promises may have a progress handler. The back end API to signal a
+    // progress "event" has a single parameter. The contents of this parameter
+    // could be just about anything and is specific to your implementation.
+    // progress: function (data) {},
+   
+    /* "Private" methods. */
+   
+    _complete: function (which, arg, arg2) {
+      // switch over to sync then()
+      this.then = which === 'resolve' ?
+        function (resolve, reject) { resolve && resolve(arg); } :
+        function (resolve, reject) { reject && reject(arg); };
+      // disallow multiple calls to resolve or reject
+      this.resolve = this.reject = function () { throw new Error('Promise already completed.'); };
+      // complete all waiting (async) then()s
+      var aThen, i = 0;
+
+      while (aThen = this._thens[i++]) { aThen[which] && aThen[which](arg, arg2); }
+      delete this._thens;
+    }
+    
+  };
 })();
